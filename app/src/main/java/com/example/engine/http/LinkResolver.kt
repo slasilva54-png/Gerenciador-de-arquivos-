@@ -47,41 +47,68 @@ object LinkResolver {
             Log.w(TAG, "Failed to parse filename from MediaFire URL path", e)
         }
 
+        // If the URL is already a direct MediaFire download URL, bypass parsing
+        if (url.contains("download") && url.contains(".mediafire.com")) {
+            return ResolvedResult(url, extractedFileName)
+        }
+
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             .build()
 
-        client.newCall(request).execute().use { response ->
-            if (response.isSuccessful) {
-                val html = response.body?.string() ?: ""
-                
-                // Regular expressions to find the direct download link
-                val patterns = listOf(
-                    Regex("""href=["'](https?://download[a-zA-Z0-9\-\.]*\.mediafire\.com/[^"']+)["']"""),
-                    Regex("""(https?://download[a-zA-Z0-9\-\.]*\.mediafire\.com/[^\s"'\>]+)"""),
-                    Regex("""href=["'](https?://www\.mediafire\.com/download/[^"']+)["']""")
-                )
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val html = response.body?.string() ?: ""
+                    
+                    // Regular expressions to find the direct download link (tolerant of space/quotes)
+                    val patterns = listOf(
+                        Regex("""href\s*=\s*["'](https?://download[a-zA-Z0-9\-\.]*\.mediafire\.com/[^"']+)["']"""),
+                        Regex("""(https?://download[a-zA-Z0-9\-\.]*\.mediafire\.com/[^\s"'\>]+)"""),
+                        Regex("""href\s*=\s*["'](https?://www\.mediafire\.com/download/[^"']+)["']"""),
+                        Regex("""id\s*=\s*["']downloadButton["'][^>]*href\s*=\s*["']([^"']+)["']"""),
+                        Regex("""href\s*=\s*["']([^"']+)["'][^>]*id\s*=\s*["']downloadButton["']"""),
+                        Regex("""aria-label\s*=\s*["']Download file["'][^>]*href\s*=\s*["']([^"']+)["']"""),
+                        Regex("""href\s*=\s*["']([^"']+)["'][^>]*aria-label\s*=\s*["']Download file["']""")
+                    )
 
-                for (pattern in patterns) {
-                    val match = pattern.find(html)
-                    if (match != null) {
-                        val directUrl = match.groupValues.getOrNull(1) ?: match.value
-                        Log.i(TAG, "Found MediaFire direct URL: $directUrl")
+                    for (pattern in patterns) {
+                        val match = pattern.find(html)
+                        if (match != null) {
+                            val directUrl = match.groupValues.getOrNull(1) ?: match.value
+                            Log.i(TAG, "Found MediaFire direct URL: $directUrl")
 
-                        // Try to find the filename in the HTML if not already extracted
-                        if (extractedFileName == null) {
-                            // Extract filename from heading / page title or layout
-                            // usually there is a <div class="filename">my_file.zip</div>
-                            val nameMatch = Regex("""class="filename">([^<]+)""").find(html)
-                            if (nameMatch != null) {
-                                extractedFileName = nameMatch.groupValues[1].trim()
+                            // Try to find the filename in the HTML if not already extracted
+                            if (extractedFileName.isNullOrEmpty()) {
+                                val namePatterns = listOf(
+                                    Regex("""class\s*=\s*["']filename["'][^>]*>([^<]+)"""),
+                                    Regex("""<title>([^<]+)\s*-\s*MediaFire</title>"""),
+                                    Regex("""title\s*=\s*["']Download\s+([^"']+)["']"""),
+                                    Regex("""class\s*=\s*["']dl-btn-label["']\s+title\s*=\s*["']([^"']+)["']"""),
+                                    Regex("""<div class="promo-button-text">([^<]+)""")
+                                )
+                                for (namePattern in namePatterns) {
+                                    val nameMatch = namePattern.find(html)
+                                    if (nameMatch != null) {
+                                        var foundName = nameMatch.groupValues[1].trim()
+                                        if (foundName.endsWith(" - MediaFire", ignoreCase = true)) {
+                                            foundName = foundName.substring(0, foundName.length - 12).trim()
+                                        }
+                                        if (foundName.isNotEmpty()) {
+                                            extractedFileName = foundName
+                                            break
+                                        }
+                                    }
+                                }
                             }
+                            return ResolvedResult(directUrl, extractedFileName)
                         }
-                        return ResolvedResult(directUrl, extractedFileName)
                     }
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed resolving MediaFire direct link", e)
         }
         return ResolvedResult(url, extractedFileName)
     }
@@ -141,13 +168,14 @@ object LinkResolver {
         var directUrl = url
         if (url.contains("www.dropbox.com")) {
             directUrl = url.replace("www.dropbox.com", "dl.dropboxusercontent.com")
-            if (directUrl.contains("?dl=0")) {
-                directUrl = directUrl.substringBefore("?dl=0")
-            } else if (directUrl.contains("?dl=1")) {
-                directUrl = directUrl.substringBefore("?dl=1")
-            }
-        } else if (url.contains("?dl=0")) {
-            directUrl = url.replace("?dl=0", "?dl=1")
+        } else if (url.contains("dropbox.com")) {
+            directUrl = url.replace("dropbox.com", "dl.dropboxusercontent.com")
+        }
+
+        if (directUrl.contains("?dl=0")) {
+            directUrl = directUrl.substringBefore("?dl=0")
+        } else if (directUrl.contains("?dl=1")) {
+            directUrl = directUrl.substringBefore("?dl=1")
         }
 
         // Parse filename from URL path
