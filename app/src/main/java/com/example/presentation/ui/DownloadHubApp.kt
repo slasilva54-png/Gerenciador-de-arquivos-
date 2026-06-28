@@ -32,6 +32,33 @@ import com.example.presentation.DownloadViewModel
 import java.io.File
 import kotlin.math.roundToInt
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+
+val MyPauseIcon: ImageVector
+    get() = ImageVector.Builder(
+        name = "Pause",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(fill = androidx.compose.ui.graphics.SolidColor(Color.White)) {
+            moveTo(6f, 19f)
+            horizontalLineTo(10f)
+            verticalLineTo(5f)
+            horizontalLineTo(6f)
+            verticalLineTo(19f)
+            close()
+            moveTo(14f, 5f)
+            verticalLineTo(19f)
+            horizontalLineTo(18f)
+            verticalLineTo(5f)
+            horizontalLineTo(14f)
+            close()
+        }
+    }.build()
+
 // Cyber Slate Color Scheme
 val DarkSlateBg = Color(0xFF12141C)
 val CardSlateBg = Color(0xFF1C1E2A)
@@ -470,7 +497,7 @@ fun TaskCard(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                imageVector = if (task.status == "DOWNLOADING") Icons.Default.Pause else Icons.Default.PlayArrow,
+                                imageVector = if (task.status == "DOWNLOADING") MyPauseIcon else Icons.Default.PlayArrow,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )

@@ -11,12 +11,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class HttpDownloader(
-    private val client: OkHttpClient = OkHttpClient.Builder()
+    val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 ) {
-    private const val TAG = "HttpDownloader"
+    private val TAG = "HttpDownloader"
 
     interface ProgressListener {
         fun onProgress(downloaded: Long, total: Long, speedBytesPerSec: Long)

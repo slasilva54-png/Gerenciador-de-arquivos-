@@ -11,6 +11,7 @@ import com.example.engine.torrent.TorrentClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import okhttp3.Request
 import java.io.File
 import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
@@ -22,7 +23,7 @@ class DownloadManager(
     private val httpDownloader: HttpDownloader = HttpDownloader(),
     private val torrentClient: TorrentClient = TorrentClient()
 ) {
-    private const val TAG = "DownloadManager"
+    private val TAG = "DownloadManager"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Active Jobs mapped by task ID

@@ -10,7 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.presentation.DownloadViewModel
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                 name = "$magnetName.torrent",
                 url = data,
                 type = "TORRENT",
-                isStreaming = true,
+                isStreamingExtraction = true,
                 priority = 2,
                 isLowStorageMode = false
             )

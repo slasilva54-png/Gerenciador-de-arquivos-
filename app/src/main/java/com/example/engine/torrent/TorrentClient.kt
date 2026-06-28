@@ -3,6 +3,7 @@ package com.example.engine.torrent
 import android.util.Log
 import com.example.engine.bencode.BencodeParser
 import com.example.engine.buffer.StreamingCircularBuffer
+import com.example.engine.http.HttpDownloader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,7 @@ import kotlin.math.roundToInt
 class TorrentClient(
     private val client: OkHttpClient = OkHttpClient()
 ) {
-    private const val TAG = "TorrentClient"
+    private val TAG = "TorrentClient"
 
     data class TorrentMetadata(
         val name: String,
