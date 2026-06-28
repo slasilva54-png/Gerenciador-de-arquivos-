@@ -57,8 +57,33 @@ class DownloadManager(
         if (activeJobs.containsKey(taskId)) return
 
         val job = scope.launch {
-            val task = repository.getTaskById(taskId) ?: return@launch
+            var task = repository.getTaskById(taskId) ?: return@launch
             try {
+                // If the URL is HTTP, run LinkResolver to get direct URL and a better filename if possible
+                var resolvedUrl = task.url
+                var resolvedName = task.name
+
+                if (task.type == "HTTP" && !task.url.contains("sample-videos.com")) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val result = com.example.engine.http.LinkResolver.resolve(task.url, httpDownloader.client)
+                            resolvedUrl = result.directUrl
+                            if (result.fileName != null && result.fileName.isNotEmpty()) {
+                                resolvedName = result.fileName
+                            }
+                        }
+                    } catch (resolverEx: Exception) {
+                        Log.e(TAG, "LinkResolver failed, falling back to original", resolverEx)
+                    }
+                }
+
+                task = task.copy(
+                    url = resolvedUrl,
+                    name = resolvedName
+                )
+                // Save it back to DB so UI shows the correct filename
+                updateTaskStatus(task)
+
                 val publicDownloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 val rootDir = File(publicDownloadsDir, "SmartDownloads")
                 rootDir.mkdirs()
