@@ -23,6 +23,13 @@ object StreamingExtractor {
             val zipIn = ZipInputStream(inputStream)
             var entry = zipIn.nextEntry
             while (entry != null) {
+                val entryName = entry.name.trim()
+                if (entryName.isEmpty() || entryName == "/" || entryName == "." || entryName == "./") {
+                    zipIn.closeEntry()
+                    entry = zipIn.nextEntry
+                    continue
+                }
+
                 val outFile = File(outputDir, entry.name)
                 // Prevent path traversal security vulnerabilities (Zip Slip)
                 if (!outFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
@@ -30,7 +37,13 @@ object StreamingExtractor {
                     return
                 }
 
-                if (entry.isDirectory) {
+                if (outFile.canonicalPath == outputDir.canonicalPath) {
+                    zipIn.closeEntry()
+                    entry = zipIn.nextEntry
+                    continue
+                }
+
+                if (entry.isDirectory || (outFile.exists() && outFile.isDirectory)) {
                     outFile.mkdirs()
                 } else {
                     outFile.parentFile?.mkdirs()
@@ -89,6 +102,25 @@ object StreamingExtractor {
                 if (!outFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
                     listener.onError("Relative path traversal detected in TAR entry!")
                     return
+                }
+
+                if (outFile.canonicalPath == outputDir.canonicalPath) {
+                    var remaining = size
+                    val tempBuf = ByteArray(4096)
+                    while (remaining > 0) {
+                        val toRead = minOf(remaining, tempBuf.size.toLong()).toInt()
+                        val r = gzipIn.read(tempBuf, 0, toRead)
+                        if (r == -1) break
+                        remaining -= r
+                    }
+                    val padding = (512 - (size % 512)) % 512
+                    var skipped = 0L
+                    while (skipped < padding) {
+                        val s = gzipIn.skip(padding - skipped)
+                        if (s <= 0) break
+                        skipped += s
+                    }
+                    continue
                 }
 
                 if (typeFlag == '5') { // Directory

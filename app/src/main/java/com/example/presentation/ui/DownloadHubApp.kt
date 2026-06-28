@@ -389,6 +389,24 @@ fun TaskCard(
                     Divider(color = Color.White.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(10.dp))
 
+                    // Caminho de Salvamento
+                    if (task.outputDirectory.isNotEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                            Text("Caminho de Salvamento", color = SoftGray, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = task.outputDirectory,
+                                color = BrightNeonCyan,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Divider(color = Color.White.copy(alpha = 0.1f))
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
                     // Speed limiter slider
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

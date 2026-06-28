@@ -7,6 +7,7 @@ import com.example.domain.model.DownloadTask
 import com.example.engine.buffer.StreamingCircularBuffer
 import com.example.engine.extractor.StreamingExtractor
 import com.example.engine.http.HttpDownloader
+import android.os.Environment
 import com.example.engine.torrent.TorrentClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,14 +59,20 @@ class DownloadManager(
         val job = scope.launch {
             val task = repository.getTaskById(taskId) ?: return@launch
             try {
-                updateTaskStatus(task.copy(status = "DOWNLOADING", error = null))
-
-                val rootDir = File(context.getExternalFilesDir(null), "SmartDownloads")
+                val publicDownloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val rootDir = File(publicDownloadsDir, "SmartDownloads")
                 rootDir.mkdirs()
                 val outputFile = File(rootDir, task.name)
 
-                val extDir = File(context.getExternalFilesDir(null), "SmartDownloads/Extracted/${task.name.substringBeforeLast(".")}")
+                val extDir = File(publicDownloadsDir, "SmartDownloads/Extracted/${task.name.substringBeforeLast(".")}")
                 extDir.mkdirs()
+
+                val startStatusTask = task.copy(
+                    status = "DOWNLOADING",
+                    error = null,
+                    outputDirectory = if (task.isStreamingExtraction) extDir.absolutePath else outputFile.absolutePath
+                )
+                updateTaskStatus(startStatusTask)
 
                 val speedLimitProvider = {
                     val currentTask = runBlocking { repository.getTaskById(taskId) }
