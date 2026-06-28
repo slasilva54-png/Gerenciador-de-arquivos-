@@ -1,0 +1,6 @@
+{
+  "name": "SmartDownload Hub",
+  "description": "Gerenciador de downloads avançado com suporte a HTTP multi-thread acelerado, BitTorrent e extração de streaming em tempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
